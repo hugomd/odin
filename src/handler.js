@@ -48,7 +48,7 @@ const deposit = async msg => {
     );
 
     return msg.reply(
-      'please pay this invoice. It may take a few moments for your balance to update',
+      `please pay this invoice, it may take a few moments for your balance to update: \`${payment_request}\``,
       attachment,
     );
   } catch (error) {
