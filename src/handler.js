@@ -8,6 +8,8 @@ const ln = new Lightning(
   process.env.MACAROON_BASE64,
 );
 
+const satSuffix = (amount) => amount > 1 ? 'sats' : 'sat';
+
 // !deposit 10
 const deposit = async msg => {
   const [command, amount] = msg.content.split(' ');
@@ -44,14 +46,49 @@ const deposit = async msg => {
 
 // !withdraw 10
 const withdraw = async msg => {
-  return msg.reply('withdrew something');
+  const [command, payment_request] = msg.content.split(' ');
+
+  if (!payment_request) {
+    return msg.reply('you must specify a payment request');
+  }
+
+  const decodePaymentRequest = await ln.decodePaymentRequest(payment_request);
+  const {num_satoshis, timestamp, expiry} = decodePaymentRequest;
+
+  const expiresAt = parseInt(timestamp) + parseInt(expiry);
+  const satoshis = parseInt(num_satoshis);
+
+  if (expiresAt <= (Date.now() / 1000)) {
+    return msg.reply('payment request has expired');
+  }
+
+  const user = await User.findOne({where: {discordId: msg.author.id}});
+
+  if (satoshis > user.balance) {
+    return msg.reply(`you are trying to withdraw ${satoshis} ${satSuffix(satoshis)}, but you only have ${user.balance} ${satSuffix(user.balance)}`);
+  }
+
+  const result = await ln.sendPayment(payment_request);
+
+  if (result.payment_error) {
+    return msg.reply(`payment error: \`${result.payment_error}\``)
+  }
+
+  if (!result.payment_error) {
+    user.update({
+      balance: user.balance - satoshis
+    });
+  }
+
+
+  return msg.reply(`successfully withdrew ${satoshis} ${satSuffix(satoshis)}`)
 };
 
 // !balance
 const balance = async msg => {
   const {id: discordId} = msg.author;
   const {balance} = await User.findOne({where: {discordId}});
-  return msg.reply(`your balance is ${balance} sat${balance > 1 ? 's' : ''}`);
+  return msg.reply(`your balance is ${balance} ${satSuffix(balance)}`);
 };
 
 // !tip @hugo
@@ -91,23 +128,21 @@ const tip = async msg => {
 
   if (sender.balance < amount) {
     return msg.reply(
-      `your balance is insufficient, it is ${sender.balance} sat${
-        sender.balance > 1 ? 's' : ''
-      }`,
+      `your balance is insufficient, it is ${sender.balance} ${satSuffix(sender.balance)}`
     );
   }
 
   const receiver = await User.findOne({where: {discordId: receiverUser.id}});
 
   await receiver.update({
-    balance: receiver.balance + amount,
+    balance: receiver.balance + parseInt(amount),
   });
 
   await sender.update({
-    balance: sender.balance - amount,
+    balance: sender.balance - parseInt(amount),
   });
 
-  msg.reply(`you tipped ${receiverUser} ${amount} sat${amount > 1 ? 's' : ''}`);
+  msg.reply(`you tipped ${receiverUser} ${amount} ${satSuffix(amount)}`);
 };
 
 const help = async msg => {
@@ -115,6 +150,7 @@ const help = async msg => {
 
 \`!balance\` to retrieve balance
 \`!deposit 10\` to deposit 10 sats
+\`!withdraw payment_request\` to withdraw via payment_request
 \`!tip 10 @user\` to tip 10 sats to a user
 
 Read more about Lightning here: <https://lightning.network/>
@@ -139,7 +175,6 @@ const handleNewUser = async discordId => {
   const userExists = await User.findOne({where: {discordId}});
 
   if (!userExists) {
-    console.log('Creating user', discordId);
     await User.create({
       discordId,
       balance: 0,

@@ -48,7 +48,32 @@ class Lightning {
     return qrcode.toCanvas(Canvas.createCanvas(100, 100), paymentRequest);
   }
 
+  async decodePaymentRequest(payment_request) {
+    const {data} = await instance({
+      method: 'GET',
+      url: `https://${this.lndIP}:${this.lndPort}/v1/payreq/${payment_request}`,
+      headers: {
+        'Grpc-Metadata-macaroon': this.macaroon,
+      }
+    });
 
+    return data;
+  }
+
+  async sendPayment(payment_request) {
+    const {data} = await instance({
+      method: 'POST',
+      url: `https://${this.lndIP}:${this.lndPort}/v1/channels/transactions`,
+      headers: {
+        'Grpc-Metadata-macaroon': this.macaroon,
+      },
+      data: {
+        payment_request
+      }
+    });
+
+    return data;
+  }
 }
 
 module.exports = Lightning;
