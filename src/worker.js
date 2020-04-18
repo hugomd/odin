@@ -51,7 +51,7 @@ class Worker {
       });
 
       await Promise.all(invoicePromises);
-    }, 1000);
+    }, 5000);
   }
 }
 
