@@ -40,6 +40,7 @@ if (process.env.NODE_ENV === 'production') {
 
   client.once('ready', () => {
     console.log('Ready!');
+    client.user.setPresence({ activity: { name: '!help for help' }, status: 'idle' })
   });
 
   client.on('message', handler);
