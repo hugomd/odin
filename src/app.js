@@ -6,12 +6,19 @@ const envVars = [
   'LND_IP',
   'LND_PORT',
   'MACAROON_BASE64',
+  'DISCORD_TOKEN',
+];
+
+const prodVars = [
   'DB_HOST',
   'DB_DATABASE',
   'DB_USERNAME',
   'DB_PASSWORD',
-  'DISCORD_TOKEN',
 ];
+
+if (process.env.NODE_ENV === 'production') {
+  envVars = [...envVars, ...prodVars]
+}
 
 (async () => {
   // Check environment variables properly set
