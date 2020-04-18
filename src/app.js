@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 const handler = require('./handler');
 const Worker = require('./worker');
 
-const envVars = [
+let envVars = [
   'LND_IP',
   'LND_PORT',
   'MACAROON_BASE64',
