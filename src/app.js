@@ -2,7 +2,25 @@ const Discord = require('discord.js');
 const handler = require('./handler');
 const Worker = require('./worker');
 
+const envVars = [
+  'LND_IP',
+  'LND_PORT',
+  'MACAROON_BASE64',
+  'DB_HOST',
+  'DB_DATABASE',
+  'DB_USERNAME',
+  'DB_PASSWORD',
+  'DISCORD_TOKEN',
+];
+
 (async () => {
+  // Check environment variables properly set
+  const missingEnv = envVars.filter(e => !process.env[e]);
+  if (missingEnv.length > 0) {
+    console.error('Required environment variables missing:', missingEnv.join(', '));
+    process.exit(1);
+  }
+
   // Postgres
   require('./models');
 
