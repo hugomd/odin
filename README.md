@@ -16,7 +16,7 @@ Install dependencies:
 npm i
 ```
 
-Modify database configuration in [`src/config/config.js`](./src/config/config.js), or set `NODE_ENV=production` and set the Postgres environment variables defined below.
+Modify database configuration in [`src/config/index.js`](./src/config/index.js), or set `NODE_ENV=production` and set the Postgres environment variables defined below.
 
 Create the database and run migrations:
 ```bash
@@ -32,10 +32,7 @@ npm start
 
 ### Environment variables
 #### Postgres
-* `DB_USERNAME`
-* `DB_PASSWORD`
-* `DB_DATABASE`
-* `DB_HOST`
+* `DB_CONNECTION_URL`: eg: `postgres://user:pass@example.com:5432/dbname`
 
 #### Lightning
 * `LND_IP`
