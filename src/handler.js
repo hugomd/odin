@@ -111,11 +111,13 @@ const tip = async msg => {
 };
 
 const help = async msg => {
-  msg.reply(`
+  msg.reply(`I'm a bot that allows you to send and receive tips via the lightning network. \:zap:
 
 \`!balance\` to retrieve balance
 \`!deposit 10\` to deposit 10 sats
 \`!tip 10 @user\` to tip 10 sats to a user
+
+Read more about Lightning here: <https://lightning.network/>
 `);
 };
 
