@@ -12,9 +12,6 @@ jobs:
     - name: Checkout master
       uses: actions/checkout@v2
 
-    - name: Update submodules
-      run: git submodule update --init --recursive
-
     - name: Build container image
       run: docker build --tag docker.pkg.github.com/hugomd/odin/odin:$(echo $GITHUB_SHA | head -c7) --tag hugomd/odin:latest .
 
