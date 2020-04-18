@@ -10,8 +10,12 @@
     "type": "git",
     "url": "git+https://github.com/hugomd/odin.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": {
+    "name": "Hugo Muller-Downing",
+    "email": "github@hu.md",
+    "url": "hugo.md"
+  },
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/hugomd/odin/issues"
   },
