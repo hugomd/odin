@@ -1,6 +1,7 @@
 const Discord = require('discord.js');
 const {Invoice, User} = require('./models');
 const Lightning = require('./lightning/lightning');
+const {logMsg, logError, logSuccess, logInfo} = require('./logger');
 
 const ln = new Lightning(
   process.env.LND_IP,
@@ -80,7 +81,6 @@ const withdraw = async msg => {
     });
   }
 
-
   return msg.reply(`successfully withdrew ${satoshis} ${satSuffix(satoshis)}`)
 };
 
@@ -88,6 +88,7 @@ const withdraw = async msg => {
 const balance = async msg => {
   const {id: discordId} = msg.author;
   const {balance} = await User.findOne({where: {discordId}});
+  logInfo(`Retrieved balance of ${balance} ${satSuffix(balance)} for discordId: ${discordId}`);
   return msg.reply(`your balance is ${balance} ${satSuffix(balance)}`);
 };
 
@@ -142,6 +143,7 @@ const tip = async msg => {
     balance: sender.balance - parseInt(amount),
   });
 
+  logInfo(`Tipped ${amount} from ${msg.author.username}(${sender.discordId}) to ${receiverUser.username}(${receiver.discordId})`);
   msg.reply(`you tipped ${receiverUser} ${amount} ${satSuffix(amount)}`);
 };
 
@@ -179,11 +181,17 @@ const handleNewUser = async discordId => {
       discordId,
       balance: 0,
     });
+    logInfo(`Created new user for discordId: ${discordId}`);
   }
 };
 
 const Handler = async msg => {
+  // Ignore bot messages
   if (msg.author.bot) return;
+  // Ignore direct messages
+  if (msg.channel.type === "dm") return;
+
+  logMsg(msg);
 
   await handleNewUser(msg.author.id);
 
