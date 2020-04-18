@@ -220,7 +220,7 @@ const help = async msg => {
 \`!balance\` to retrieve balance
 \`!deposit 10\` to deposit 10 sats
 \`!withdraw payment_request\` to withdraw via payment_request
-\`!tip 10 @user\` to tip 10 sats to a user
+\`!tip @user 10\` to tip 10 sats to a user
 
 Read more about Lightning here: <https://lightning.network/>
 `);
