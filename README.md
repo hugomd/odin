@@ -2,7 +2,7 @@
 
 Odin is a Discord tipping bot. It allows users to deposit and withdraw Bitcoin via the [lightning network](https://lightning.network). Users can tip each other with the Bitcoin they deposit or receive, and can later withdraw to an external lightning wallet.
 
-![Screenshot of Odin being used in a Discord channel](./screenshot.png)
+![GIF of Odin being used in a Discord channel](./demo.gif)
 
 ## Installation
 
