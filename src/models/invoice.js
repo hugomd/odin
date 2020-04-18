@@ -1,26 +1,30 @@
-const mongoose = require('mongoose');
+const Sequelize = require('sequelize');
+const User = require('./user');
 
-const Invoice = mongoose.model('invoice', {
-  discord: String, // Discord Snowflake
-  state: {
-    type: String,
-    enum: ['PENDING', 'SETTLED'],
-  },
-  value: Number, // Satoshi
-  type: {
-    type: String,
-    enum: ['DEPOSIT', 'WITHDRAWAL'], // TODO: Constants
-  },
-  created_at: Date,
-  settled_at: {
-    type: Date,
-    default: null,
-  },
-  r_hash: {
-    type: String,
-    required: true,
-  },
-  userId: mongoose.ObjectId, // Associated userId
-});
-
-module.exports = Invoice;
+module.exports = (sequelize, DataTypes) => {
+  const Invoice = sequelize.define('Invoice', {
+    userId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'user',
+        key: 'id',
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE
+      }
+    },
+    value: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    settledAt: DataTypes.DATE,
+    r_hash: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    state: DataTypes.ENUM('PENDING', 'SETTLED'),
+    type: DataTypes.ENUM('DEPOSIT', 'WITHDRAWAL')
+  }, {timestamps: true});
+  Invoice.associate = function(models) {
+    // associations can be defined here
+  };
+  return Invoice;
+};

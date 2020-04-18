@@ -1,15 +1,12 @@
-const mongoose = require('mongoose');
 const Discord = require('discord.js');
 const handler = require('./handler');
 const Worker = require('./worker');
 
 (async () => {
-  // Mongoose
-  await mongoose.connect('mongodb://localhost:27017/odin_local', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  });
+  // Postgres
+  require('./models');
 
+  // Worker
   const worker = new Worker();
   worker.start();
 

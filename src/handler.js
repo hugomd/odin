@@ -1,6 +1,5 @@
 const Discord = require('discord.js');
-const User = require('./models/user');
-const Invoice = require('./models/invoice');
+const {Invoice, User} = require('./models');
 const Lightning = require('./lightning/lightning');
 
 const ln = new Lightning(
@@ -17,17 +16,17 @@ const deposit = async msg => {
     return msg.reply('you must specify an amount');
   }
 
-  const user = await User.findOne({discordId: msg.author.id});
+  const user = await User.findOne({where: {discordId: msg.author.id}});
 
   const {payment_request, r_hash} = await ln.invoice(amount);
 
   const invoice = await Invoice.create({
-    state: "PENDING", // TODO: Constant
+    state: 'PENDING', // TODO: Constant
     value: new Number(amount),
-    type: "DEPOSIT", // TODO: Constant
-    created_at: new Date(),
+    type: 'DEPOSIT', // TODO: Constant
+    settledAt: null,
     r_hash,
-    userId: user._id
+    userId: user.id,
   });
 
   const image = await ln.generateQR(payment_request);
@@ -51,8 +50,8 @@ const withdraw = async msg => {
 // !balance
 const balance = async msg => {
   const {id: discordId} = msg.author;
-  const {balance} = await User.findOne({discordId});
-  return msg.reply(`your balance is ${balance} sats`);
+  const {balance} = await User.findOne({where: {discordId}});
+  return msg.reply(`your balance is ${balance} sat${balance > 1 ? 's' : ''}`);
 };
 
 // !tip @hugo
@@ -88,30 +87,30 @@ const tip = async msg => {
 
   await handleNewUser(receiverUser.id);
 
-  const sender = await User.findOne({discordId: msg.author.id});
+  const sender = await User.findOne({where: {discordId: msg.author.id}});
 
   if (sender.balance < amount) {
-    return msg.reply(`your balance is insufficient, it is ${sender.balance}`);
+    return msg.reply(
+      `your balance is insufficient, it is ${sender.balance} sat${
+        sender.balance > 1 ? 's' : ''
+      }`,
+    );
   }
 
-  const receiver = await User.findOne({discordId: receiverUser.id});
+  const receiver = await User.findOne({where: {discordId: receiverUser.id}});
 
-  await receiver.updateOne({
-    $inc: {
-      balance: amount,
-    },
+  await receiver.update({
+    balance: receiver.balance + amount,
   });
 
-  await sender.updateOne({
-    $inc: {
-      balance: -amount,
-    },
+  await sender.update({
+    balance: sender.balance - amount,
   });
 
-  msg.reply(`you tipped ${receiverUser} ${amount} sats`);
+  msg.reply(`you tipped ${receiverUser} ${amount} sat${amount > 1 ? 's' : ''}`);
 };
 
-const help = async (msg) => {
+const help = async msg => {
   msg.reply(`
 
 \`!balance\` to retrieve balance
@@ -125,7 +124,7 @@ const handlers = {
   withdraw,
   balance,
   tip,
-  help
+  help,
 };
 
 const noop = () => {};
@@ -135,7 +134,7 @@ const handleNewUser = async discordId => {
     throw new Error('No discordId provided');
   }
 
-  const userExists = await User.exists({discordId});
+  const userExists = await User.findOne({where: {discordId}});
 
   if (!userExists) {
     console.log('Creating user', discordId);
