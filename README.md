@@ -52,5 +52,8 @@ Convert it to base64:
  xxd -ps -u -c 1000 odin.macaroon
 ```
 
+## Related projects
+* [lnd-invoice](https://github.com/hugomd/lnd-invoice)
+
 ## License
 MIT, see [LICENSE](./LICENSE).
