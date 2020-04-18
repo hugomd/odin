@@ -1,6 +1,6 @@
 const through2 = require('through2');
 const Lightning = require('./lightning/lightning');
-const {Invoice, User} = require('./models');
+const {Invoice, User, sequelize} = require('./models');
 
 const ln = new Lightning(
   process.env.LND_IP,
@@ -17,24 +17,40 @@ class Worker {
         limit: 10,
       });
 
-      invoices.forEach(async invoice => {
+      const invoicePromises = invoices.map(async invoice => {
         const r_hash = Buffer.from(invoice.r_hash, 'base64').toString('hex');
         const invoiceLn = await ln.getInvoice(r_hash);
 
         // TODO: Constant
         if (invoiceLn.state === 'SETTLED') {
-          await invoice.update({
-            state: 'SETTLED',
-            settledAt: new Date(),
-          });
+          const t = await sequelize.transaction();
 
-          const user = await User.findOne({where: {id: invoice.userId}});
+          try {
+            await invoice.update(
+              {
+                state: 'SETTLED',
+                settledAt: new Date(),
+              },
+              {transaction: t},
+            );
 
-          await user.update({
-            balance: user.balance + invoice.value,
-          });
+            const user = await User.findOne({where: {id: invoice.userId}});
+
+            await user.update(
+              {
+                balance: user.balance + invoice.value,
+              },
+              {transaction: t},
+            );
+
+            await t.commit();
+          } catch (err) {
+            await t.rollback();
+          }
         }
       });
+
+      await Promise.all(invoicePromises);
     }, 1000);
   }
 }

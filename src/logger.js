@@ -28,8 +28,8 @@ class Logger {
    * Logs an error message
    * @param {String} Message to log
    */
-  static logError(msg) {
-    log(red(msg));
+  static logError(msg, err) {
+    log(red(msg, err));
   }
 
   /**
