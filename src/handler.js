@@ -225,12 +225,76 @@ const tip = async msg => {
   }
 };
 
+// !decode
+const decode = async msg => {
+  const [command, payment_request] = msg.content.split(' ');
+
+  if (!payment_request) {
+    return msg.reply('you must specify a payment request');
+  }
+
+  const decodedPaymentRequest = await ln.decodePaymentRequest(payment_request);
+
+  const image = await ln.generateQR(payment_request);
+
+  const {timestamp, expiry} = decodedPaymentRequest;
+
+  const expiresAt = parseInt(timestamp) + parseInt(expiry);
+
+  const filtered = ['features', 'route_hints'];
+  const fields = Object.keys(decodedPaymentRequest)
+    .filter(key => !filtered.includes(key))
+    .reduce((acc, key) => {
+      let value = decodedPaymentRequest[key];
+
+      if (!value) return acc;
+
+      if (key === 'timestamp') {
+        value = new Date(parseInt(value) * 1000).toISOString();
+        console.log(value);
+      }
+
+      return [
+        ...acc,
+        {
+          name: key,
+          value,
+          inline: true,
+        },
+      ];
+    }, []);
+
+  fields.push({
+    name: 'validity',
+    value: expiresAt <= Date.now() / 1000 ? 'expired' : 'valid',
+  });
+
+  const embed = {
+    fields,
+    thumbnail: {
+      url: 'attachment://qrcode.png',
+    },
+    color: 16776192,
+  };
+
+  msg.channel.send({
+    embed,
+    files: [
+      {
+        name: 'qrcode.png',
+        attachment: image.toBuffer(),
+      },
+    ],
+  });
+};
+
 const help = async msg => {
   msg.reply(`I'm a bot that allows you to send and receive tips via the lightning network. \:zap:
 
 \`!balance\` to retrieve balance
 \`!deposit 10\` to deposit 10 sats
-\`!withdraw payment_request\` to withdraw via payment_request
+\`!withdraw payment_request\` to withdraw via \`payment_request\`
+\`!decode payment_request\` to decode a given \`payment_request\`
 \`!tip @user 10\` to tip 10 sats to a user
 
 Read more about Lightning here: <https://lightning.network/>
@@ -241,6 +305,7 @@ const handlers = {
   deposit,
   withdraw,
   balance,
+  decode,
   tip,
   help,
 };
