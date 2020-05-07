@@ -1,6 +1,7 @@
 const Discord = require('discord.js');
 const handler = require('./handler');
 const Worker = require('./worker');
+const config = require('./config/config');
 
 (async () => {
   // Postgres
