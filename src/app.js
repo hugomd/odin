@@ -1,7 +1,6 @@
 const Discord = require('discord.js');
 const handler = require('./handler');
 const Worker = require('./worker');
-const config = require('./config');
 
 (async () => {
   // Postgres
@@ -21,5 +20,5 @@ const config = require('./config');
 
   client.on('message', handler);
 
-  client.login(config.discordToken);
+  client.login(process.env.DISCORD_TOKEN);
 })();
