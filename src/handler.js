@@ -1,7 +1,10 @@
 const Discord = require('discord.js');
+const {MessageEmbed} = Discord;
+
 const {Invoice, User, sequelize} = require('./models');
 const Lightning = require('./lightning/lightning');
 const {logMsg, logError, logSuccess, logInfo} = require('./logger');
+const db = require('./db');
 
 const ln = new Lightning(
   process.env.LND_IP,
@@ -22,6 +25,8 @@ const deposit = async msg => {
   const t = await sequelize.transaction();
 
   try {
+    const parsedAmount = parseRawAmount(amount);
+
     const user = await User.findOne({where: {discordId: msg.author.id}});
 
     const {payment_request, r_hash} = await ln.invoice(amount);
@@ -68,11 +73,11 @@ const withdraw = async msg => {
     return msg.reply('you must specify a payment request');
   }
 
-  const decodePaymentRequest = await ln.decodePaymentRequest(payment_request);
-  const {num_satoshis, timestamp, expiry} = decodePaymentRequest;
+  const decodedPaymentRequest = await ln.decodePaymentRequest(payment_request);
+  const {num_satoshis, timestamp, expiry} = decodedPaymentRequest;
 
   const expiresAt = parseInt(timestamp) + parseInt(expiry);
-  const satoshis = parseInt(num_satoshis);
+  const satoshis = parseRawAmount(num_satoshis);
 
   if (expiresAt <= Date.now() / 1000) {
     return msg.reply('payment request has expired');
@@ -132,43 +137,68 @@ const balance = async msg => {
   return msg.reply(`your balance is ${balance} ${satSuffix(balance)}`);
 };
 
-// !tip @hugo
-const tip = async msg => {
-  const [command, , amount] = msg.content.split(' ');
+const parseRawAmount = rawAmountString => {
+  const parseError = 'Cannot parse amount';
+  if (isNaN(rawAmountString)) {
+    throw new Error(parseError);
+  }
 
+  const parsedAmount = parseInt(rawAmountString, 10);
+
+  if (!parsedAmount || parsedAmount < 1) {
+    throw new Error(parseError);
+  }
+
+  return parsedAmount;
+};
+
+const getReceiverUser = msg => {
   const mentions = msg.mentions.users;
-  if (mentions.array().length > 1) {
-    return msg.reply('you can only tip one user at a time');
+  if (mentions.array().length === 0 || mentions.array().length > 1) {
+    throw new Error('You must provide a user to tip');
   }
 
-  if (mentions.array().length === 0) {
-    return msg.reply('you must mention a user to tip them');
+  return mentions.first();
+};
+
+const validateReceiver = (msg, receiver) => {
+  if (receiver.bot) {
+    msg.reply('you cannot tip bots');
+    throw new Error('You cannot tip bots');
   }
 
-  const receiverUser = mentions.first();
+  if (receiver.id === msg.author.id) {
+    msg.reply('you cannot tip yourself');
+    throw new Error('You cannot tip yourself');
+  }
+};
 
-  if (!amount) {
-    return msg.reply('you must specify an amount');
+// !tip
+const tip = async msg => {
+  const args = msg.content.split(' ');
+
+  if (args.length > 3) {
+    return msg.reply('command has too many arguments');
   }
 
-  if (amount < 1) {
-    return msg.reply('you cannot send 0 or negative amounts');
-  }
+  const [command, , amount] = args;
 
-  if (receiverUser.bot) {
-    return msg.reply('you cannot tip bots');
-  }
-
-  if (receiverUser.id === msg.author.id) {
-    return msg.reply('you cannot tip yourself');
-  }
-
-  await handleNewUser(receiverUser.id);
-
-  const t = await sequelize.transaction();
+  const receiverUser = getReceiverUser(msg);
+  validateReceiver(msg, receiverUser);
 
   try {
-    const sender = await User.findOne({where: {discordId: msg.author.id}});
+    const parsedAmount = parseRawAmount(amount);
+
+    await handleNewUser(receiverUser.id);
+
+    const receiverId = receiverUser.id;
+    const senderId = msg.author.id;
+
+    if (!receiverId || !senderId) {
+      return msg.reply('something went wrong..');
+    }
+
+    const sender = await User.findOne({where: {discordId: senderId}});
 
     if (sender.balance < amount) {
       return msg.reply(
@@ -178,37 +208,18 @@ const tip = async msg => {
       );
     }
 
-    const receiver = await User.findOne({where: {discordId: receiverUser.id}});
-
-    await Promise.all([
-      receiver.update(
-        {
-          balance: receiver.balance + parseInt(amount),
-        },
-        {transaction: t},
-      ),
-      sender.update(
-        {
-          balance: sender.balance - parseInt(amount),
-        },
-        {transaction: t},
-      ),
-    ]);
-
-    await t.commit();
-
+    await db.transfer(senderId, receiverId, amount);
     logInfo(
       `Tipped ${amount} from ${msg.author.username}(${sender.discordId}) to ${
         receiverUser.username
-      }(${receiver.discordId})`,
+      }(${receiverUser.id})`,
     );
     msg.reply(`you tipped ${receiverUser} ${amount} ${satSuffix(amount)}`);
   } catch (error) {
-    await t.rollback();
     logError(
-      `Failed to tip ${amount} from discordId: ${
-        sender.discordId
-      } to discordId: ${receiver.discordId}`,
+      `Failed to tip ${amount} from discordId: ${msg.author.id} to discordId: ${
+        receiverUser.id
+      }`,
       error,
     );
   }
