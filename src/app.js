@@ -16,7 +16,7 @@ const config = require('./config');
 
   client.once('ready', () => {
     console.log('Ready!');
-    client.user.setPresence({ activity: { name: '!help for help' }, status: 'idle' })
+    client.user.setPresence({ activity: { name: '!help for help' }, status: 'online' })
   });
 
   client.on('message', handler);
