@@ -34,7 +34,7 @@ const deposit = async msg => {
     const invoice = await Invoice.create(
       {
         state: 'PENDING', // TODO: Constant
-        value: new Number(amount),
+        value: parsedAmount,
         type: 'DEPOSIT', // TODO: Constant
         settledAt: null,
         r_hash,
