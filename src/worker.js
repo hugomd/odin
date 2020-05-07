@@ -38,7 +38,7 @@ class Worker {
 
             await user.update(
               {
-                balance: user.balance + invoice.value,
+                balance: user.balance + parseInt(invoiceLn.value),
               },
               {transaction: t},
             );
