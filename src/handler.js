@@ -297,7 +297,9 @@ const help = async msg => {
 \`!decode payment_request\` to decode a given \`payment_request\`
 \`!tip @user 10\` to tip 10 sats to a user
 
-Read more about Lightning here: <https://lightning.network/>
+Read more about Lightning here: <https://lightning.network/>.
+
+This bot is open source, contribute here: <https://github.com/hugomd/odin>.
 `);
 };
 
